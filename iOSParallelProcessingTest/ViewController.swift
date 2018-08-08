@@ -8,15 +8,26 @@
 
 import UIKit
 import Dispatch
+import Foundation
 
-class ViewController: UIViewController {
+protocol VCProtocol {
+    var operationCountLabel : UILabel! {get set}
+}
+
+
+class ViewController: UIViewController, VCProtocol {
 
     @IBOutlet weak var gcdCountLabel: UILabel!
+    @IBOutlet weak var operationCountLabel: UILabel!
     
     override func viewDidLoad() {
         super.viewDidLoad()
 
+        // GCD (Grand Central Dispatch)
+        //////////
         
+        // キューをつくる。
+        // DispatchQueue.global(qos: .default)などでもとより動いている並列dispatchキューを取得することも可能。
         let queue = DispatchQueue(label: "net.rokihiro.appname.uniq_key", qos: .userInitiated, attributes: .concurrent, autoreleaseFrequency: .inherit, target: nil)
         // label:他のアプリと被らないようにDNSの逆から形式で名前をつける
         // qos:優先度
@@ -37,6 +48,40 @@ class ViewController: UIViewController {
             }
         }
         
+        // Operation
+        class TestOperation: Operation{
+            let number: Int
+            let controlVC: VCProtocol
+            init(number: Int,controlVC : VCProtocol) {
+                self.number = number
+                self.controlVC = controlVC
+            }
+            
+            
+            override func main() {
+                for i in 0...1000{
+                    print(i)
+                    Thread.sleep(forTimeInterval: 0.1)
+                    if i % 10 == 0 {
+                        OperationQueue.main.addOperation {
+                            self.controlVC.operationCountLabel.text = String(i)
+                        }
+                    }
+                }
+            }
+        }
+        
+        // キューを作る
+        // GCDと異なり、元から動いている並列dispatchキューはいない
+        let operationQueue = OperationQueue()
+        operationQueue.name = "net.rokihiro.appname.uniq_key1"
+        operationQueue.maxConcurrentOperationCount = 3 // 並列数
+        operationQueue.qualityOfService = .default
+        
+        
+        operationQueue.addOperation(TestOperation(number: 1,controlVC: self))
+        ///メインスレッドで実行s
+
     }
 
     override func didReceiveMemoryWarning() {
