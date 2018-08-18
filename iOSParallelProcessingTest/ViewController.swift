@@ -19,6 +19,7 @@ class ViewController: UIViewController, VCProtocol {
 
     @IBOutlet weak var gcdCountLabel: UILabel!
     @IBOutlet weak var operationCountLabel: UILabel!
+    let operationQueue:OperationQueue = OperationQueue()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -37,8 +38,8 @@ class ViewController: UIViewController, VCProtocol {
         
         
         queue.async {
-            for i in 0...1000{
-                print(i)
+            for i in 0...100{
+                print("queue:"+String(i))
                 Thread.sleep(forTimeInterval: 0.1)
                 if i % 10 == 0 {
                     DispatchQueue.main.async {
@@ -48,7 +49,7 @@ class ViewController: UIViewController, VCProtocol {
             }
         }
         
-        // Operation
+        // Operation protocolを継承して、mainをoverrideして動かす
         class TestOperation: Operation{
             let number: Int
             let controlVC: VCProtocol
@@ -59,9 +60,13 @@ class ViewController: UIViewController, VCProtocol {
             
             
             override func main() {
-                for i in 0...1000{
-                    print(i)
+                for i in 0...100{
+                    print("Operation:"+String(i))
                     Thread.sleep(forTimeInterval: 0.1)
+                    // キャンセルされた場合、true
+                    if isCancelled {
+                        return
+                    }
                     if i % 10 == 0 {
                         OperationQueue.main.addOperation {
                             self.controlVC.operationCountLabel.text = String(i)
@@ -73,14 +78,12 @@ class ViewController: UIViewController, VCProtocol {
         
         // キューを作る
         // GCDと異なり、元から動いている並列dispatchキューはいない
-        let operationQueue = OperationQueue()
         operationQueue.name = "net.rokihiro.appname.uniq_key1"
         operationQueue.maxConcurrentOperationCount = 3 // 並列数
         operationQueue.qualityOfService = .default
         
         
         operationQueue.addOperation(TestOperation(number: 1,controlVC: self))
-        ///メインスレッドで実行s
 
     }
 
@@ -89,6 +92,10 @@ class ViewController: UIViewController, VCProtocol {
         // Dispose of any resources that can be recreated.
     }
 
+    @IBAction func tapCancelButton(_ sender: Any) {
+        // OperationQueueはキャンセル可
+        operationQueue.operations[0].cancel()
+    }
 
 }
 
