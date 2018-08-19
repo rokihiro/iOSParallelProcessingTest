@@ -49,19 +49,24 @@ class ViewController: UIViewController, VCProtocol {
             }
         }
         
+
+        // Operation,OperationQueue
+        //////////
+        
         // Operation protocolを継承して、mainをoverrideして動かす
         class TestOperation: Operation{
             let number: Int
             let controlVC: VCProtocol
-            init(number: Int,controlVC : VCProtocol) {
+            let operationName: String
+            init(number: Int,controlVC : VCProtocol, name:String) {
                 self.number = number
                 self.controlVC = controlVC
+                self.operationName = name
             }
             
-            
             override func main() {
-                for i in 0...100{
-                    print("Operation:"+String(i))
+                for i in 0...number{
+                    print("Operation:"+self.operationName+":"+String(i))
                     Thread.sleep(forTimeInterval: 0.1)
                     // キャンセルされた場合、true
                     if isCancelled {
@@ -69,7 +74,7 @@ class ViewController: UIViewController, VCProtocol {
                     }
                     if i % 10 == 0 {
                         OperationQueue.main.addOperation {
-                            self.controlVC.operationCountLabel.text = String(i)
+                            self.controlVC.operationCountLabel.text = self.operationName+":"+String(i)
                         }
                     }
                 }
@@ -83,8 +88,16 @@ class ViewController: UIViewController, VCProtocol {
         operationQueue.qualityOfService = .default
         
         
-        operationQueue.addOperation(TestOperation(number: 1,controlVC: self))
-
+        let ope1 = TestOperation(number: 100,controlVC: self, name:"OP1")
+        let ope2 = TestOperation(number: 100,controlVC: self, name:"OP2")
+        // ope2はope1に依存するので、ope1の後に実行される
+        ope2.addDependency(ope1)
+        let prallelOpe = TestOperation(number: 100,controlVC: self, name:"OP-para")
+        
+        // waitUntilFinished: この処理が終わるまでスレッドの動きを止める。デッドロックを起こしうるので使わないほうが良い
+        operationQueue.addOperations([ope1,ope2,prallelOpe], waitUntilFinished: false)
+        
+        
     }
 
     override func didReceiveMemoryWarning() {
@@ -96,6 +109,5 @@ class ViewController: UIViewController, VCProtocol {
         // OperationQueueはキャンセル可
         operationQueue.operations[0].cancel()
     }
-
 }
 
